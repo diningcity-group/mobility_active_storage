@@ -105,6 +105,14 @@ module MobilityActiveStorage
       assert_empty attachment_names_for(@product)
     end
 
+    def test_eager_loading_scope_rejects_an_unconfigured_locale
+      error = assert_raises(MobilityActiveStorage::Error) do
+        Mobility.with_locale(:ja) { LimitedManyProduct.with_attached_photos.to_a }
+      end
+
+      assert_match(/ja/, error.message)
+    end
+
     def test_exposes_the_underlying_rails_associations_and_scopes
       assert Product.reflect_on_association(:photos_en_attachments)
       assert Product.reflect_on_association(:photos_en_blobs)

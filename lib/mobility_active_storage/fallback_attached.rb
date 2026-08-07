@@ -12,18 +12,33 @@ module MobilityActiveStorage
   # The classes are built lazily: Active Storage's classes are autoloaded by its engine, which
   # has not necessarily run at the point this gem is required from a Gemfile.
   module FallbackAttached
+    # Guards the lazy build. Two threads racing here would both +const_set+, emitting an
+    # "already initialized constant" warning and handing callers structurally distinct classes,
+    # which would then fail each other's +is_a?+ checks.
+    BUILD_MUTEX = Mutex.new
+
     class << self
       def one
-        @one ||= const_set(:One, build(::ActiveStorage::Attached::One) do
+        @one || BUILD_MUTEX.synchronize { @one ||= const_set(:One, build_one) }
+      end
+
+      def many
+        @many || BUILD_MUTEX.synchronize { @many ||= const_set(:Many, build_many) }
+      end
+
+      private
+
+      def build_one
+        build(::ActiveStorage::Attached::One) do
           # The fallback locale's attachment stands in when this locale has none.
           def attachment
             own.attachment || record.public_send(:"#{fallback_name}_attachment")
           end
-        end)
+        end
       end
 
-      def many
-        @many ||= const_set(:Many, build(::ActiveStorage::Attached::Many) do
+      def build_many
+        build(::ActiveStorage::Attached::Many) do
           def attachments
             own.attachments.presence || record.public_send(:"#{fallback_name}_attachments")
           end
@@ -31,10 +46,8 @@ module MobilityActiveStorage
           def blobs
             own.blobs.presence || record.public_send(:"#{fallback_name}_blobs")
           end
-        end)
+        end
       end
-
-      private
 
       def build(plain_class, &reads)
         Class.new(plain_class) do

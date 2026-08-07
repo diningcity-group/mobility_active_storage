@@ -12,6 +12,41 @@ module MobilityActiveStorage
       refute_predicate Mobility.with_locale(:fr) { product.document }, :attached?
     end
 
+    # An attribute that declares no fallbacks must not be talked into one by a read option.
+    # Mobility's own fallbacks plugin is inert when `fallbacks: false`; this matches it.
+    def test_fallback_option_is_ignored_when_the_attribute_declares_no_fallbacks
+      product = Product.create!
+      Mobility.with_locale(:ja) { product.document.attach(file("ja.pdf")) }
+      product.reload
+
+      Mobility.with_locale(:fr) do
+        refute_predicate product.document(fallback: :ja), :attached?
+        refute_predicate product.document(fallback: %i[pt-BR ja]), :attached?
+        refute_predicate product.document(fallback: true), :attached?
+      end
+    end
+
+    def test_fallback_option_is_ignored_for_collections_without_fallbacks
+      product = Product.create!
+      Mobility.with_locale(:ja) { product.photos.attach(file("a.pdf"), file("b.pdf")) }
+      product.reload
+
+      assert_empty Mobility.with_locale(:fr) { product.photos(fallback: :ja) }
+    end
+
+    # The explicit override remains available where fallbacks *are* configured.
+    def test_fallback_option_overrides_the_chain_when_fallbacks_are_configured
+      product = FallbackProduct.create!
+      Mobility.with_locale(:ja) { product.document.attach(file("ja.pdf")) }
+      product.reload
+
+      Mobility.with_locale(:fr) do
+        # :fr would normally fall back to :en, which has nothing attached.
+        refute_predicate product.document, :attached?
+        assert_equal "ja.pdf", product.document(fallback: :ja).filename.to_s
+      end
+    end
+
     def test_falls_back_to_the_default_locale_when_enabled
       product = FallbackProduct.create!
       product.document.attach(file("en.pdf"))

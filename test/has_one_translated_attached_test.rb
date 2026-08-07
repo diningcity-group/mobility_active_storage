@@ -186,6 +186,18 @@ module MobilityActiveStorage
       refute_respond_to LimitedProduct.new, :document_ja
     end
 
+    # The eager-loading scope must fail the same way the read path does, rather than leaking a
+    # confusing ActiveRecord::AssociationNotFoundError about a generated association name.
+    def test_eager_loading_scope_rejects_an_unconfigured_locale
+      LimitedProduct.create!
+
+      error = assert_raises(MobilityActiveStorage::Error) do
+        Mobility.with_locale(:ja) { LimitedProduct.with_attached_document.to_a }
+      end
+
+      assert_match(/ja/, error.message)
+    end
+
     def test_attaching_an_unconfigured_locale_raises
       product = LimitedProduct.create!
 

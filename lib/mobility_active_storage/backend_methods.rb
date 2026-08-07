@@ -33,6 +33,27 @@ module MobilityActiveStorage
         options[:attachment_fallbacks] = build_fallbacks(options[:attachment_fallbacks])
       end
 
+      # Locale-suffixed attachment name, rejecting locales this attribute was not configured
+      # for. Shared by the read path and by the eager-loading scopes, so both fail the same way
+      # rather than the scope leaking an ActiveRecord::AssociationNotFoundError about a
+      # generated association name.
+      def attachment_name_for(attribute, locale)
+        normalized = Mobility.normalize_locale(locale)
+        return "#{attribute}_#{normalized}" if normalized_locales.include?(normalized)
+
+        raise Error, "#{model_class.name} has no translated #{attribute} attachment for " \
+                     "locale #{locale.inspect}. Configured locales: " \
+                     "#{options[:locales].map(&:to_s).join(", ")}."
+      end
+
+      def configured_locale?(locale)
+        normalized_locales.include?(Mobility.normalize_locale(locale))
+      end
+
+      def normalized_locales
+        @normalized_locales ||= options[:locales].map { |locale| Mobility.normalize_locale(locale) }
+      end
+
       private
 
       def build_fallbacks(option)
@@ -119,30 +140,25 @@ module MobilityActiveStorage
     private
 
     def attachment_name(locale)
-      normalized = Mobility.normalize_locale(locale)
-      unless normalized_locales.include?(normalized)
-        raise Error, "#{model.class.name} has no translated #{attribute} attachment for " \
-                     "locale #{locale.inspect}. Configured locales: " \
-                     "#{options[:locales].map(&:to_s).join(", ")}."
-      end
-
-      "#{attribute}_#{normalized}"
+      self.class.attachment_name_for(attribute, locale)
     end
 
     def configured?(locale)
-      normalized_locales.include?(Mobility.normalize_locale(locale))
-    end
-
-    def normalized_locales
-      @normalized_locales ||= options[:locales].map { |locale| Mobility.normalize_locale(locale) }
+      self.class.configured_locale?(locale)
     end
 
     # +fallback: :fr+ or +fallback: [:fr, :es]+ overrides the configured chain for one read.
+    #
+    # An attribute that declares no fallbacks cannot be talked into one by a read option, so a
+    # +fallbacks: false+ declaration is enforceable: otherwise any reader that forwards
+    # caller-controlled options (a serializer, a GraphQL resolver) would become a cross-locale
+    # read. This matches Mobility, whose fallbacks plugin is inert when +fallbacks: false+.
     def fallback_chain(locale, fallback)
+      fallbacks = options[:attachment_fallbacks]
+      return [] unless fallbacks
       return Array(fallback) unless fallback == true
 
-      fallbacks = options[:attachment_fallbacks]
-      fallbacks ? fallbacks[locale] : []
+      fallbacks[locale]
     end
   end
 end

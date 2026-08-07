@@ -119,7 +119,11 @@ Mobility.with_locale(:fr) do
 end
 ```
 
-Pass `fallback: :ja` or `fallback: [:ja, :en]` to override the chain for a single read.
+Pass `fallback: :ja` or `fallback: [:ja, :en]` to override the chain for a single read. That
+override only applies where fallbacks are configured — an attribute declaring no fallbacks cannot be
+talked into one by a read option, so `fallbacks: false` is enforceable even if a caller forwards
+untrusted options into the reader. This matches Mobility, whose fallbacks plugin is inert when
+`fallbacks: false`.
 
 ### Options
 
@@ -146,6 +150,38 @@ Note that the macros additionally disable Mobility's `fallbacks`, `cache` and `d
 the attribute (see below); using `translates` directly, you should pass `fallbacks: false`
 yourself if that plugin is enabled.
 
+## Strong parameters
+
+Each locale gets its own set of writers. `has_one_translated_attached :document` on a four-locale
+app defines `document=`, `document_en=`, `document_fr=`, `document_ja=`, `document_pt_br=` (plus the
+`_attachment=` / `_blob=` association writers Rails generates), and they all work through mass
+assignment. That is inherent to `has_one_attached`, but the names are not obvious from the single
+macro call in your model.
+
+Permit only the bare attribute name, which routes through Mobility to the current locale:
+
+```ruby
+params.expect(product: [:title, :document, photos: []])
+```
+
+Permit the `_<locale>` variants only where a locale switcher genuinely needs them. A blanket
+`permit!`, or a filter matching `/\Adocument/`, would let a user overwrite a locale they were never
+editing — and with fallbacks enabled, that changes what other locales serve too.
+
+## Rails compatibility
+
+Tested in CI against Rails 7.0, 7.1, 7.2, 8.0 and latest, on Ruby 3.2-3.4.
+
+**Use a maintained Rails.** Rails 7.0 and 7.1 are end-of-life and carry unpatched Active Storage
+advisories with no fix available — path traversal and glob injection in `DiskService`, a content-type
+bypass in direct uploads, and DoS via `Range` requests in proxy mode. This gem works on them, and
+the dependency floor stays at `>= 7.0` so it does not dictate your upgrade schedule, but it
+multiplies the number of attachments served through exactly those paths. Rails 7.2.3.2 and 8.0.5.1
+are the earliest releases in their series that clear all current Active Storage advisories.
+
+Run [bundler-audit](https://github.com/rubysec/bundler-audit) or Dependabot in your application —
+that is where the version is actually decided.
+
 ## Notes and limitations
 
 **Locales are read when the class body runs.** Attachments are declared for
@@ -171,6 +207,10 @@ attachments. Query the underlying attachments directly if you need to.
 ```sh
 bin/setup
 bundle exec rake        # tests + rubocop
+
+# against a specific Rails version
+BUNDLE_GEMFILE=gemfiles/rails_7.2.gemfile bundle install
+BUNDLE_GEMFILE=gemfiles/rails_7.2.gemfile bundle exec rake test
 ```
 
 The suite boots a minimal `Rails::Application` in `test/test_helper.rb` against in-memory SQLite,

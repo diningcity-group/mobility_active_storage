@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+Pre-release fixes from a security review of the initial commit.
+
+- A `fallback:` read option is now honoured only where the attribute actually configures
+  fallbacks. Previously `document(fallback: :ja)` cross-read another locale even on an attribute
+  declaring `fallbacks: false`, so the declaration was not enforceable by a caller forwarding
+  untrusted options. Matches Mobility, whose fallbacks plugin is inert when `fallbacks: false`.
+- `with_attached_*` scopes now validate the current locale against the attribute's configured
+  locales, raising the same `MobilityActiveStorage::Error` as the read path instead of an
+  `ActiveRecord::AssociationNotFoundError` about a generated association name.
+- The lazily built fallback proxy classes are now guarded by a mutex.
+- CI runs a Rails 7.0/7.1/7.2/8.0/latest matrix on Ruby 3.2-3.4, plus `bundler-audit`. Actions are
+  pinned by SHA.
+- README: strong-parameters guidance for the per-locale writers, and Rails version security notes.
+
 ## [0.1.0] - 2026-08-07
 
 - Initial release.

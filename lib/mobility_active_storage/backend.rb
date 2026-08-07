@@ -17,16 +17,18 @@ module MobilityActiveStorage
     include Mobility::Backend
     include BackendMethods
 
-    setup do |attributes, options|
+    setup do |attributes, options, backend_class|
       attributes.each do |attribute|
         options[:locales].each do |locale|
           has_one_attached :"#{attribute}_#{Mobility.normalize_locale(locale)}",
                            **options[:attached_options]
         end
 
-        # Eager-loads whichever locale is current when the scope is evaluated.
+        # Eager-loads whichever locale is current when the scope is evaluated. Validates the
+        # locale the same way the read path does.
         scope :"with_attached_#{attribute}", lambda {
-          includes("#{attribute}_#{Mobility.normalize_locale}_attachment": :blob)
+          name = backend_class.attachment_name_for(attribute, Mobility.locale)
+          includes("#{name}_attachment": :blob)
         }
 
         define_method(:"#{attribute}_locales") { mobility_backends[attribute].locales }

@@ -34,6 +34,11 @@ class TestApplication < Rails::Application
   }
   config.active_job.queue_adapter = :inline
 
+  # Fixtures are fake bytes with a pdf content type; nothing here tests analysis or previewing,
+  # and Rails 7.1 shells out to pdftoppm inline when they are left enabled.
+  config.active_storage.analyzers = []
+  config.active_storage.previewers = []
+
   config.i18n.available_locales = %i[en fr ja pt-BR]
   config.i18n.default_locale = :en
 end

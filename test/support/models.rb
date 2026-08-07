@@ -44,6 +44,14 @@ class DirectBackendProduct < ActiveRecord::Base
   translates :document, backend: :active_storage, fallbacks: false
 end
 
+# Restricts the locale set for a collection attachment.
+class LimitedManyProduct < ActiveRecord::Base
+  self.table_name = "products"
+  extend Mobility
+
+  has_many_translated_attached :photos, locales: %i[en fr]
+end
+
 # Restricts the locale set explicitly rather than reading Mobility.available_locales.
 class LimitedProduct < ActiveRecord::Base
   self.table_name = "products"

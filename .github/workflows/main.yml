@@ -11,25 +11,64 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-    name: Ruby ${{ matrix.ruby }}
+    name: Ruby ${{ matrix.ruby }} / ${{ matrix.name }}
     strategy:
       fail-fast: false
       matrix:
-        ruby:
-          - '3.2'
-          - '3.3'
-          - '3.4'
+        include:
+          - { ruby: '3.2', name: 'Rails 7.0', gemfile: gemfiles/rails_7.0.gemfile }
+          - { ruby: '3.2', name: 'Rails 7.1', gemfile: gemfiles/rails_7.1.gemfile }
+          - { ruby: '3.3', name: 'Rails 7.2', gemfile: gemfiles/rails_7.2.gemfile }
+          - { ruby: '3.3', name: 'Rails 8.0', gemfile: gemfiles/rails_8.0.gemfile }
+          - { ruby: '3.4', name: 'Rails 8.0', gemfile: gemfiles/rails_8.0.gemfile }
+          - { ruby: '3.4', name: 'Rails latest', gemfile: Gemfile }
+    env:
+      BUNDLE_GEMFILE: ${{ matrix.gemfile }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
       - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@e5517072e87f198d9533967ae13d97c11b604005 # v1
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
-      - name: Run the default task
-        run: bundle exec rake
+      - name: Run tests
+        run: bundle exec rake test
+
+  lint:
+    runs-on: ubuntu-latest
+    name: RuboCop
+
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@e5517072e87f198d9533967ae13d97c11b604005 # v1
+        with:
+          ruby-version: '3.4'
+          bundler-cache: true
+      - name: Run RuboCop
+        run: bundle exec rubocop
+
+  audit:
+    runs-on: ubuntu-latest
+    name: Dependency audit
+
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@e5517072e87f198d9533967ae13d97c11b604005 # v1
+        with:
+          ruby-version: '3.4'
+          bundler-cache: true
+      - name: Check resolved dependencies for known advisories
+        run: |
+          gem install bundler-audit --no-document
+          bundle-audit check --update
