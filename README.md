@@ -170,17 +170,18 @@ editing — and with fallbacks enabled, that changes what other locales serve to
 
 ## Rails compatibility
 
-Tested in CI against Rails 7.0, 7.1, 7.2, 8.0 and latest, on Ruby 3.2-3.4.
+Requires **Rails >= 7.2.3.2** and Ruby >= 3.2. Tested in CI against Rails 7.2, 8.0 and latest, on
+Ruby 3.2-3.4.
 
-**Use a maintained Rails.** Rails 7.0 and 7.1 are end-of-life and carry unpatched Active Storage
-advisories with no fix available — path traversal and glob injection in `DiskService`, a content-type
-bypass in direct uploads, and DoS via `Range` requests in proxy mode. This gem works on them, and
-the dependency floor stays at `>= 7.0` so it does not dictate your upgrade schedule, but it
-multiplies the number of attachments served through exactly those paths. Rails 7.2.3.2 and 8.0.5.1
-are the earliest releases in their series that clear all current Active Storage advisories.
+The floor is deliberately a patch level rather than a minor version. Rails 7.0 and 7.1 are
+end-of-life and carry Active Storage advisories with no fix available — path traversal and glob
+injection in `DiskService`, a content-type bypass in direct uploads, and DoS via `Range` requests in
+proxy mode. Since this gem's whole purpose is to serve more attachments through exactly those paths,
+it does not support them. 7.2.3.2 is the earliest release that clears every current Active Storage
+advisory; the equivalent for the 8.0 series is 8.0.5.1.
 
-Run [bundler-audit](https://github.com/rubysec/bundler-audit) or Dependabot in your application —
-that is where the version is actually decided.
+Run [bundler-audit](https://github.com/rubysec/bundler-audit) or Dependabot in your application to
+stay ahead of new advisories.
 
 ## Notes and limitations
 

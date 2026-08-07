@@ -18,8 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { ruby: '3.2', name: 'Rails 7.0', gemfile: gemfiles/rails_7.0.gemfile }
-          - { ruby: '3.2', name: 'Rails 7.1', gemfile: gemfiles/rails_7.1.gemfile }
+          - { ruby: '3.2', name: 'Rails 7.2', gemfile: gemfiles/rails_7.2.gemfile }
           - { ruby: '3.3', name: 'Rails 7.2', gemfile: gemfiles/rails_7.2.gemfile }
           - { ruby: '3.3', name: 'Rails 8.0', gemfile: gemfiles/rails_8.0.gemfile }
           - { ruby: '3.4', name: 'Rails 8.0', gemfile: gemfiles/rails_8.0.gemfile }

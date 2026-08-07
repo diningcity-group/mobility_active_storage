@@ -33,17 +33,6 @@ module MobilityActiveStorage
       end
     end
 
-    class << self
-      # +pending_uploads:+ was added to CreateMany after Rails 7.0.
-      def supports_pending_uploads?
-        return @supports_pending_uploads if defined?(@supports_pending_uploads)
-
-        @supports_pending_uploads =
-          ActiveStorage::Attached::Changes::CreateMany.instance_method(:initialize)
-                                                      .parameters.any? { |(_, n)| n == :pending_uploads }
-      end
-    end
-
     private
 
     def attached_class
@@ -61,13 +50,10 @@ module MobilityActiveStorage
 
       return ActiveStorage::Attached::Changes::DeleteMany.new(name, model) if attachables.none?
 
-      if self.class.supports_pending_uploads?
-        pending = model.attachment_changes[name].try(:pending_uploads)
-        ActiveStorage::Attached::Changes::CreateMany.new(name, model, attachables,
-                                                         pending_uploads: pending)
-      else
-        ActiveStorage::Attached::Changes::CreateMany.new(name, model, attachables)
-      end
+      ActiveStorage::Attached::Changes::CreateMany.new(
+        name, model, attachables,
+        pending_uploads: model.attachment_changes[name].try(:pending_uploads)
+      )
     end
   end
 end

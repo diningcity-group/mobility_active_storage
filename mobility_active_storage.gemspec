@@ -28,14 +28,14 @@ Gem::Specification.new do |spec|
   spec.files = IO.popen(%w[git ls-files -z], chdir: __dir__, err: IO::NULL) do |ls|
     ls.readlines("\x0", chomp: true).reject do |f|
       (f == gemspec) ||
-        f.start_with?(*%w[bin/ Gemfile .gitignore test/ docs/ .github/ .rubocop.yml])
+        f.start_with?(*%w[bin/ Gemfile gemfiles/ .gitignore test/ docs/ .github/ .rubocop.yml])
     end
   end
   spec.bindir = "exe"
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "activerecord", ">= 7.0"
-  spec.add_dependency "activestorage", ">= 7.0"
+  spec.add_dependency "activerecord", ">= 7.2.3.2"
+  spec.add_dependency "activestorage", ">= 7.2.3.2"
   spec.add_dependency "mobility", ">= 1.2", "< 2.0"
 end

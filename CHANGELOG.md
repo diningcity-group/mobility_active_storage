@@ -12,8 +12,11 @@ Pre-release fixes from a security review of the initial commit.
   locales, raising the same `MobilityActiveStorage::Error` as the read path instead of an
   `ActiveRecord::AssociationNotFoundError` about a generated association name.
 - The lazily built fallback proxy classes are now guarded by a mutex.
-- CI runs a Rails 7.0/7.1/7.2/8.0/latest matrix on Ruby 3.2-3.4, plus `bundler-audit`. Actions are
-  pinned by SHA.
+- Raised the `activerecord` / `activestorage` floor to `>= 7.2.3.2`, the earliest release clearing
+  every current Active Storage advisory. Rails 7.0 and 7.1 are end-of-life with no fix available for
+  those advisories, and this gem serves more attachments through exactly the affected paths.
+- CI runs a Rails 7.2/8.0/latest matrix on Ruby 3.2-3.4, plus `bundler-audit`. Actions are pinned
+  by SHA.
 - README: strong-parameters guidance for the per-locale writers, and Rails version security notes.
 
 ## [0.1.0] - 2026-08-07
