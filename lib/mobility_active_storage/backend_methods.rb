@@ -1,0 +1,148 @@
+# frozen_string_literal: true
+
+require "i18n/locale/fallbacks"
+
+module MobilityActiveStorage
+  # Behaviour shared by the has_one and has_many attachment backends.
+  #
+  # A translated attachment is stored as N ordinary Active Storage attachments whose
+  # +name+ column carries the locale, e.g. +document_en+ and +document_fr+. Each one is
+  # declared with a real +has_one_attached+ / +has_many_attached+ in the backend's setup
+  # block, so Rails' own associations, upload callbacks, scopes and purge-on-destroy
+  # behaviour apply unchanged.
+  #
+  # Backends must +include Mobility::Backend+ *before* this module, so that the overrides here
+  # (notably +each_locale+ and +present?+) take precedence over Mobility::Backend's generic
+  # implementations.
+  module BackendMethods
+    def self.included(base)
+      raise Error, "#{base} must include Mobility::Backend before #{self}" unless base < Mobility::Backend
+
+      base.extend(ClassMethods)
+    end
+
+    # Class-level configuration shared by both backends.
+    module ClassMethods
+      def valid_keys
+        %i[locales attachment_fallbacks attached_options]
+      end
+
+      def configure(options)
+        options[:locales] = Array(options[:locales] || Mobility.available_locales).map(&:to_sym)
+        options[:attached_options] ||= {}
+        options[:attachment_fallbacks] = build_fallbacks(options[:attachment_fallbacks])
+      end
+
+      private
+
+      def build_fallbacks(option)
+        case option
+        when true then FallbackChain.new({})
+        when Hash then FallbackChain.new(option)
+        else false
+        end
+      end
+    end
+
+    # Resolves a locale to the chain of locales to try, in order.
+    #
+    # Mirrors Mobility's own fallbacks plugin: an explicit map is honoured first, then I18n's
+    # configured fallbacks when the application has them enabled, and the default locale always
+    # terminates the chain. Resolved on each read so that changes to +I18n.default_locale+ or
+    # +I18n.fallbacks+ are picked up.
+    class FallbackChain
+      def initialize(map)
+        @fallbacks = I18n::Locale::Fallbacks.new(map)
+      end
+
+      def [](locale)
+        chain = @fallbacks[locale]
+        chain |= I18n.fallbacks[locale] if I18n.respond_to?(:fallbacks)
+        chain | [I18n.default_locale]
+      end
+    end
+
+    # Returns the Active Storage proxy for +locale+.
+    #
+    # Always returns a proxy, never nil, so that +record.document.attach(...)+ works on a
+    # record with nothing attached yet. Falls back to another locale only when the attribute
+    # was configured with fallbacks and the current locale has nothing attached.
+    #
+    # @param [Symbol] locale
+    # @return [ActiveStorage::Attached::One, ActiveStorage::Attached::Many]
+    def read(locale, fallback: true, **kwargs)
+      proxy = attached(locale)
+      return proxy if proxy.attached?
+
+      # Mobility's convention: an explicitly requested locale never falls back.
+      return proxy if fallback == false || kwargs[:locale]
+
+      fallback_locale = fallback_chain(locale, fallback).find do |candidate|
+        configured?(candidate) && attached(candidate).attached?
+      end
+      return proxy unless fallback_locale
+
+      # Reads resolve through the fallback locale; writes stay in the requested locale.
+      fallback_attached_class.new(attachment_name(locale), model, attachment_name(fallback_locale))
+    end
+
+    # Stages the attachment change for +locale+.
+    #
+    # Deliberately mutates +attachment_changes+ rather than calling +attach+.
+    # +ActiveStorage::Attached::One#attach+ is implemented as
+    # +record.public_send("document_en=", attachable)+, and Mobility's locale accessors take
+    # precedence over Active Storage's generated writer -- so calling +attach+ here would
+    # re-enter this same method. Writing the change directly makes both entry paths converge.
+    def write(locale, value, **)
+      name = attachment_name(locale)
+      model.attachment_changes[name] = build_change(name, value)
+      value
+    end
+
+    # Whether the attribute has an attachment in +locale+ (honouring fallbacks).
+    def present?(locale, **options)
+      read(locale, **options).attached?
+    end
+
+    # Yields each configured locale that actually has an attachment.
+    def each_locale
+      options[:locales].each { |locale| yield locale if attached(locale).attached? }
+    end
+
+    # The Active Storage proxy for +locale+, without any fallback handling.
+    def attached(locale)
+      @attached ||= {}
+      @attached[Mobility.normalize_locale(locale)] ||=
+        attached_class.new(attachment_name(locale), model)
+    end
+
+    private
+
+    def attachment_name(locale)
+      normalized = Mobility.normalize_locale(locale)
+      unless normalized_locales.include?(normalized)
+        raise Error, "#{model.class.name} has no translated #{attribute} attachment for " \
+                     "locale #{locale.inspect}. Configured locales: " \
+                     "#{options[:locales].map(&:to_s).join(", ")}."
+      end
+
+      "#{attribute}_#{normalized}"
+    end
+
+    def configured?(locale)
+      normalized_locales.include?(Mobility.normalize_locale(locale))
+    end
+
+    def normalized_locales
+      @normalized_locales ||= options[:locales].map { |locale| Mobility.normalize_locale(locale) }
+    end
+
+    # +fallback: :fr+ or +fallback: [:fr, :es]+ overrides the configured chain for one read.
+    def fallback_chain(locale, fallback)
+      return Array(fallback) unless fallback == true
+
+      fallbacks = options[:attachment_fallbacks]
+      fallbacks ? fallbacks[locale] : []
+    end
+  end
+end

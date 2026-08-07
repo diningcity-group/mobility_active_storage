@@ -1,0 +1,38 @@
+AllCops:
+  TargetRubyVersion: 3.2
+  SuggestExtensions: false
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: double_quotes
+
+# The macros deliberately mirror Rails' own has_one_attached / has_many_attached.
+Naming/PredicatePrefix:
+  AllowedMethods:
+    - has_one_translated_attached
+    - has_many_translated_attached
+    - has_one_attached
+    - has_many_attached
+
+Metrics/MethodLength:
+  Max: 15
+
+# Tests read better as flat sequences of setup and assertions.
+Metrics:
+  Exclude:
+    - "test/**/*"
+
+Metrics/ClassLength:
+  Exclude:
+    - "test/**/*"
+
+Metrics/BlockLength:
+  Exclude:
+    - "test/**/*"
+    - "*.gemspec"
+
+Lint/AmbiguousBlockAssociation:
+  Exclude:
+    - "test/**/*"

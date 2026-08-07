@@ -1,0 +1,49 @@
+module MobilityActiveStorage
+  VERSION: String
+
+  class Error < StandardError
+  end
+
+  # Class macros mixed into ActiveRecord::Base.
+  module Model
+    def has_one_translated_attached: (
+      Symbol name,
+      ?fallbacks: bool | Hash[Symbol, Symbol | Array[Symbol]],
+      ?locales: Array[Symbol]?,
+      **untyped attached_options
+    ) -> void
+
+    def has_many_translated_attached: (
+      Symbol name,
+      ?fallbacks: bool | Hash[Symbol, Symbol | Array[Symbol]],
+      ?locales: Array[Symbol]?,
+      **untyped attached_options
+    ) -> void
+  end
+
+  module BackendMethods
+    def read: (Symbol locale, ?fallback: bool | Symbol | Array[Symbol], **untyped) -> untyped
+    def write: (Symbol locale, untyped value, **untyped) -> untyped
+    def present?: (Symbol locale, **untyped) -> bool
+    def each_locale: () { (Symbol) -> void } -> void
+    def attached: (Symbol locale) -> untyped
+
+    class FallbackChain
+      def initialize: (Hash[Symbol, untyped] map) -> void
+      def []: (Symbol locale) -> Array[Symbol]
+    end
+  end
+
+  class Backend
+    include BackendMethods
+  end
+
+  class ManyBackend
+    include BackendMethods
+  end
+
+  module FallbackAttached
+    def self.one: () -> Class
+    def self.many: () -> Class
+  end
+end
