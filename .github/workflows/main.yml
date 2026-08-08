@@ -23,6 +23,9 @@ jobs:
           - { ruby: '3.3', name: 'Rails 8.0', gemfile: gemfiles/rails_8.0.gemfile }
           - { ruby: '3.4', name: 'Rails 8.0', gemfile: gemfiles/rails_8.0.gemfile }
           - { ruby: '3.4', name: 'Rails latest', gemfile: Gemfile }
+          # Newest Ruby against both ends of the supported Rails range.
+          - { ruby: '4.0', name: 'Rails 7.2', gemfile: gemfiles/rails_7.2.gemfile }
+          - { ruby: '4.0', name: 'Rails latest', gemfile: Gemfile }
     env:
       BUNDLE_GEMFILE: ${{ matrix.gemfile }}
 
@@ -49,7 +52,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
         with:
-          ruby-version: '3.4'
+          ruby-version: '4.0'
           bundler-cache: true
       - name: Run RuboCop
         run: bundle exec rubocop
@@ -65,7 +68,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
         with:
-          ruby-version: '3.4'
+          ruby-version: '4.0'
           bundler-cache: true
       - name: Check resolved dependencies for known advisories
         run: |

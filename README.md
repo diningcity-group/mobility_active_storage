@@ -171,7 +171,7 @@ editing — and with fallbacks enabled, that changes what other locales serve to
 ## Rails compatibility
 
 Requires **Rails >= 7.2.3.2** and Ruby >= 3.2. Tested in CI against Rails 7.2, 8.0 and latest, on
-Ruby 3.2-3.4.
+Ruby 3.2 through 4.0.
 
 The floor is deliberately a patch level rather than a minor version. Rails 7.0 and 7.1 are
 end-of-life and carry Active Storage advisories with no fix available — path traversal and glob
