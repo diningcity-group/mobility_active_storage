@@ -1,6 +1,11 @@
 AllCops:
   TargetRubyVersion: 3.2
   SuggestExtensions: false
+  Exclude:
+    # Standalone reproduction scripts for upstream reports, written to be pasted
+    # into an issue rather than to match this gem's style.
+    - "docs/**/*"
+
 
 Style/StringLiterals:
   EnforcedStyle: double_quotes
