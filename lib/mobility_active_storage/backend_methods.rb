@@ -50,6 +50,16 @@ module MobilityActiveStorage
         normalized_locales.include?(Mobility.normalize_locale(locale))
       end
 
+      # Mobility's query plugin asks the backend for an Arel node so it can build a predicate.
+      # An attachment is a row in active_storage_attachments, not a comparable column value, so
+      # there is nothing meaningful to compare. Fail with an explanation rather than the
+      # NoMethodError a missing `[]` would otherwise produce.
+      def [](name, _locale)
+        raise Error, "cannot query translated attachment #{name} -- attachments are not " \
+                     "comparable values. Query ActiveStorage::Attachment directly, filtering " \
+                     "on name (for example \"#{name}_#{Mobility.normalize_locale}\")."
+      end
+
       def normalized_locales
         @normalized_locales ||= options[:locales].map { |locale| Mobility.normalize_locale(locale) }
       end

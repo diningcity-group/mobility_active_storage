@@ -9,6 +9,7 @@ module MobilityActiveStorage
   class Error < StandardError; end
 end
 
+require_relative "mobility_active_storage/attribute_methods_exclusion"
 require_relative "mobility_active_storage/fallback_attached"
 require_relative "mobility_active_storage/backend"
 require_relative "mobility_active_storage/many_backend"

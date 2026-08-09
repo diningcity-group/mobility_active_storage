@@ -12,6 +12,16 @@ Pre-release fixes from a security review of the initial commit.
   locales, raising the same `MobilityActiveStorage::Error` as the read path instead of an
   `ActiveRecord::AssociationNotFoundError` about a generated association name.
 - The lazily built fallback proxy classes are now guarded by a mutex.
+- Translated attachments are no longer merged into `attributes`, `translated_attributes` or
+  `attribute_names_for_serialization` by Mobility's `attribute_methods` plugin. The value there
+  was a live `ActiveStorage::Attached` proxy referencing the record, so `attributes.to_json` and
+  `as_json` raised `SystemStackError` and `Model.new(record.attributes)` raised `ArgumentError`.
+  Rails' own `has_one_attached` puts nothing in `attributes`; this now matches. (`attribute_methods:
+  false` is not a workaround -- Mobility 1.3.2 accepts and silently ignores it.)
+- Querying a translated attachment now raises `MobilityActiveStorage::Error` with an explanation
+  instead of a `NoMethodError` from inside Mobility's query plugin.
+- The test harness now enables `attribute_methods`, `query`, `dirty` and `fallthrough_accessors`,
+  which it previously did not, so the suite exercises a maximal Mobility configuration.
 - Raised the `activerecord` / `activestorage` floor to `>= 7.2.3.2`, the earliest release clearing
   every current Active Storage advisory. Rails 7.0 and 7.1 are end-of-life with no fix available for
   those advisories, and this gem serves more attachments through exactly the affected paths.

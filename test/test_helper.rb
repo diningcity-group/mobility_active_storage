@@ -108,6 +108,14 @@ Mobility.configure do
     presence
     locale_accessors
     fallbacks
+
+    # A deliberately maximal plugin set. The suite previously ran without these, which is how
+    # attachment proxies leaking into `attributes` went unnoticed -- `attribute_methods` is the
+    # plugin that puts them there. `query` is enabled by Mobility's own generated initializer.
+    attribute_methods
+    query
+    dirty
+    fallthrough_accessors
   end
 end
 

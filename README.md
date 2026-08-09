@@ -27,9 +27,6 @@ Mobility.with_locale(:fr) { product.document } # => the :fr file
 product.document_fr                            # => the :fr file
 ```
 
-This implements [shioyama/mobility#633](https://github.com/shioyama/mobility/issues/633), where
-the Mobility maintainer declined to add the feature upstream and suggested a separate gem.
-
 ## No migration required
 
 Active Storage's `active_storage_attachments.name` column is a plain string, so each locale is
@@ -146,9 +143,16 @@ translates :document, backend: :active_storage
 translates :photos,   backend: :active_storage_many
 ```
 
-Note that the macros additionally disable Mobility's `fallbacks`, `cache` and `dirty` plugins for
-the attribute (see below); using `translates` directly, you should pass `fallbacks: false`
-yourself if that plugin is enabled.
+The macros additionally switch off the Mobility plugins that assume a scalar value. Declaring the
+backend directly means doing that yourself, for whichever of them you have enabled:
+
+```ruby
+translates :document, backend: :active_storage, fallbacks: false, cache: false, dirty: false
+```
+
+Passing an option for a plugin you have *not* enabled raises `Mobility::Pluggable::InvalidOptionKey`,
+so pass only the ones that apply. Keeping attachments out of `attributes` is handled by the backend
+itself, so it applies on this path too.
 
 ## Strong parameters
 
@@ -200,8 +204,24 @@ through a fallback and keep returning the fallback locale's file after a later a
 **Dirty tracking is not supported.** Mobility's `dirty` plugin compares scalar values; it is
 disabled for these attributes. Active Storage's own `attachment_changes` still works.
 
+**Attachment attributes are kept out of `attributes`.** Mobility's `attribute_methods` plugin
+merges every translated attribute into `attributes`, `translated_attributes` and
+`attribute_names_for_serialization`. For an attachment that value would be a live
+`ActiveStorage::Attached` proxy holding a reference back to the record, which makes the hash
+unserialisable (`attributes.to_json` and `as_json` recurse until the stack overflows) and unusable
+for mass assignment (`Model.new(record.attributes)` raises `ArgumentError`, since Active Storage
+rejects a proxy as an attachable). Rails' own `has_one_attached` puts nothing in `attributes`, and
+neither does this gem — a proxy is not a serialisable value. Translated *text* attributes are
+unaffected and still appear as Mobility intends.
+
+Note that `attribute_methods: false` is not a workaround: Mobility 1.3.2 accepts the option and
+silently ignores it, because the plugin's `initialize_hook` is gated on `dependencies_satisfied?`
+rather than on the option value.
+
 **Querying is not supported.** `Product.i18n.where(document: ...)` is not meaningful for
-attachments. Query the underlying attachments directly if you need to.
+attachments — there is no comparable column, only rows in `active_storage_attachments`. The
+backend raises `MobilityActiveStorage::Error` explaining this rather than failing obscurely inside
+Arel. Query the attachments directly, filtering on `name` (for example `"document_en"`).
 
 ## Development
 

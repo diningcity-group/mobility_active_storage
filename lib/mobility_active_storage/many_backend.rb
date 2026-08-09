@@ -30,6 +30,11 @@ module MobilityActiveStorage
         }
 
         define_method(:"#{attribute}_locales") { mobility_backends[attribute].locales }
+
+        # An attachment proxy is not a serialisable value, and Rails does not put one in
+        # `attributes` either. Installed here rather than in the macro so that declaring
+        # this backend directly through `translates` is covered too.
+        AttributeMethodsExclusion.install(self, attribute)
       end
     end
 

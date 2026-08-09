@@ -183,7 +183,10 @@ module MobilityActiveStorage
 
     def test_restricting_the_locale_set
       assert_respond_to LimitedProduct.new, :document_fr
-      refute_respond_to LimitedProduct.new, :document_ja
+
+      # With Mobility's fallthrough_accessors plugin enabled, method_missing answers for any
+      # locale-shaped name, so the guarantee is the raise rather than the missing method.
+      assert_raises(MobilityActiveStorage::Error) { LimitedProduct.new.document_ja }
     end
 
     # The eager-loading scope must fail the same way the read path does, rather than leaking a
