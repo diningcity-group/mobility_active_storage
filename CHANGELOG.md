@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [0.1.2] - 2026-08-11
 
 - `#{attribute}_locales` now answers in one query instead of one per configured locale. It probed
   each locale's attachment proxy in turn, so a model declared for 73 locales issued 73 statements
