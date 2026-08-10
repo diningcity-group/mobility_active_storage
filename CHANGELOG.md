@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- `#{attribute}_locales` now answers in one query instead of one per configured locale. It probed
+  each locale's attachment proxy in turn, so a model declared for 73 locales issued 73 statements
+  every time it was asked -- and any caller that reads it per row (a serializer, a validation) paid
+  that per row. Pending attachment changes still take precedence over the stored rows, so a staged
+  attach counts before it is saved and a staged purge stops counting straight away.
+
 ## [0.1.1] - 2026-08-10
 
 - No user-facing changes. Released to verify the trusted-publishing workflow; the packaged files

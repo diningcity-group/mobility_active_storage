@@ -94,6 +94,10 @@ For `has_one_translated_attached :document`:
 
 `has_many_translated_attached :photos` mirrors these with `ActiveStorage::Attached::Many`.
 
+`document_locales` costs one query however many locales the attribute declares, and counts pending
+changes the way `attached?` does: a staged attach is included before it is saved, a staged purge
+excluded straight away. It does not memoize, so hold the result if you need it more than once.
+
 ### Fallbacks
 
 Off by default. Enable per attribute:

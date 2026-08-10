@@ -50,6 +50,13 @@ module MobilityActiveStorage
         normalized_locales.include?(Mobility.normalize_locale(locale))
       end
 
+      # Every configured locale's attachment name. Memoized per attribute: the locale set is
+      # fixed when the class body runs.
+      def attachment_names(attribute)
+        @attachment_names ||= {}
+        @attachment_names[attribute] ||= normalized_locales.map { |locale| "#{attribute}_#{locale}" }
+      end
+
       # Mobility's query plugin asks the backend for an Arel node so it can build a predicate.
       # An attachment is a row in active_storage_attachments, not a comparable column value, so
       # there is nothing meaningful to compare. Fail with an explanation rather than the
@@ -136,8 +143,24 @@ module MobilityActiveStorage
     end
 
     # Yields each configured locale that actually has an attachment.
+    #
+    # One query for the whole locale set, not one per locale: every locale is a row in
+    # active_storage_attachments under a suffixed name, so which locales are present is a single
+    # pluck on that table. Probing each proxy instead costs a query per configured locale, and a
+    # model declared for a large locale set pays that on every read -- 73 statements to answer a
+    # question one statement answers.
+    #
+    # Pending changes win over the stored rows, as Active Storage's own +attached?+ does: an
+    # attach counts before it is saved, a purge stops counting straight away.
     def each_locale
-      options[:locales].each { |locale| yield locale if attached(locale).attached? }
+      persisted = persisted_attachment_names
+
+      options[:locales].each do |locale|
+        name = attachment_name(locale)
+        # attached? reads the staged change without touching the database.
+        present = model.attachment_changes.key?(name) ? attached(locale).attached? : persisted.include?(name)
+        yield locale if present
+      end
     end
 
     # The Active Storage proxy for +locale+, without any fallback handling.
@@ -148,6 +171,20 @@ module MobilityActiveStorage
     end
 
     private
+
+    # Which of this attribute's attachment names have rows. distinct because a collection
+    # attachment repeats its name once per file, and polymorphic_name so an STI subclass looks
+    # itself up under the type Active Storage actually stored.
+    def persisted_attachment_names
+      return Set.new if model.new_record?
+
+      ActiveStorage::Attachment
+        .where(record_type: model.class.polymorphic_name, record_id: model.id,
+               name: self.class.attachment_names(attribute))
+        .distinct
+        .pluck(:name)
+        .to_set
+    end
 
     def attachment_name(locale)
       self.class.attachment_name_for(attribute, locale)

@@ -148,6 +148,48 @@ module MobilityActiveStorage
       assert_empty @product.document_locales
     end
 
+    # One statement for the whole locale set. Probing each locale's proxy costs one apiece, which
+    # a model declared for a long locale list pays on every read.
+    def test_locales_asks_the_database_once_for_every_locale
+      @product.document.attach(file("en.pdf"))
+      product = Product.find(@product.id)
+
+      statements = queries_for { product.document_locales }
+
+      assert_equal 1, statements.size, statements.join("\n")
+    end
+
+    def test_locales_counts_an_attachment_staged_but_not_yet_saved
+      Mobility.with_locale(:fr) { @product.document.attach(file("fr.pdf")) }
+
+      assert_equal %i[fr], @product.document_locales
+    end
+
+    def test_locales_drops_a_detachment_staged_but_not_yet_saved
+      @product.document.attach(file("en.pdf"))
+      @product.reload
+      @product.document = nil
+
+      assert_empty @product.document_locales
+    end
+
+    # A record with no id has no rows to find, so the lookup is skipped rather than run against a
+    # nil record_id.
+    def test_locales_queries_nothing_for_an_unsaved_record
+      product = Product.new
+
+      statements = queries_for { assert_empty product.document_locales }
+
+      assert_empty statements, statements.join("\n")
+    end
+
+    def test_locales_counts_an_unsaved_records_staged_attachment
+      product = Product.new
+      product.document.attach(file("en.pdf"))
+
+      assert_equal %i[en], product.document_locales
+    end
+
     def test_destroying_the_record_purges_every_locale
       @product.document.attach(file("en.pdf"))
       Mobility.with_locale(:fr) { @product.document.attach(file("fr.pdf")) }

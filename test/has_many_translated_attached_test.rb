@@ -96,6 +96,31 @@ module MobilityActiveStorage
       assert_equal %i[en ja], @product.photos_locales.sort
     end
 
+    # A collection repeats its name once per file, so the lookup has to be distinct or a locale
+    # with three photos would be yielded three times.
+    def test_locales_yields_a_locale_once_however_many_files_it_holds
+      @product.photos.attach(file("a.pdf"), file("b.pdf"), file("c.pdf"))
+      product = Product.find(@product.id)
+
+      statements = queries_for { assert_equal %i[en], product.photos_locales }
+
+      assert_equal 1, statements.size, statements.join("\n")
+    end
+
+    def test_locales_counts_files_staged_but_not_yet_saved
+      Mobility.with_locale(:fr) { @product.photos.attach(file("fr.pdf")) }
+
+      assert_equal %i[fr], @product.photos_locales
+    end
+
+    def test_locales_drops_a_detachment_staged_but_not_yet_saved
+      @product.photos.attach(file("a.pdf"))
+      @product.reload
+      @product.photos = []
+
+      assert_empty @product.photos_locales
+    end
+
     def test_destroying_the_record_purges_every_locale
       @product.photos.attach(file("a.pdf"))
       Mobility.with_locale(:fr) { @product.photos.attach(file("b.pdf")) }
