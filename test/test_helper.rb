@@ -148,5 +148,22 @@ module MobilityActiveStorage
         .where(record_type: record.class.name, record_id: record.id)
         .pluck(:name).sort
     end
+
+    # The statements a block issues, schema and transaction chatter aside. Returns the SQL rather
+    # than a count so a failure says what actually ran.
+    def queries_for
+      statements = []
+      subscriber = ActiveSupport::Notifications.subscribe("sql.active_record") do |*, payload|
+        next if payload[:name] == "SCHEMA"
+        next if payload[:sql].match?(/\A\s*(BEGIN|COMMIT|SAVEPOINT|RELEASE|ROLLBACK)/i)
+
+        statements << payload[:sql]
+      end
+
+      yield
+      statements
+    ensure
+      ActiveSupport::Notifications.unsubscribe(subscriber)
+    end
   end
 end
