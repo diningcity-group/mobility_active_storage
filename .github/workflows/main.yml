@@ -18,13 +18,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { ruby: '3.2', name: 'Rails 7.2', gemfile: gemfiles/rails_7.2.gemfile }
-          - { ruby: '3.3', name: 'Rails 7.2', gemfile: gemfiles/rails_7.2.gemfile }
+          - { ruby: '3.2', name: 'Rails 7.0.8', gemfile: gemfiles/rails_7.0.8.gemfile }
+          - { ruby: '3.3', name: 'Rails 7.0.8', gemfile: gemfiles/rails_7.0.8.gemfile }
           - { ruby: '3.3', name: 'Rails 8.0', gemfile: gemfiles/rails_8.0.gemfile }
           - { ruby: '3.4', name: 'Rails 8.0', gemfile: gemfiles/rails_8.0.gemfile }
           - { ruby: '3.4', name: 'Rails latest', gemfile: Gemfile }
           # Newest Ruby against both ends of the supported Rails range.
-          - { ruby: '4.0', name: 'Rails 7.2', gemfile: gemfiles/rails_7.2.gemfile }
+          - { ruby: '4.0', name: 'Rails 7.0.8', gemfile: gemfiles/rails_7.0.8.gemfile }
           - { ruby: '4.0', name: 'Rails latest', gemfile: Gemfile }
     env:
       BUNDLE_GEMFILE: ${{ matrix.gemfile }}

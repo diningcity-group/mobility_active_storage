@@ -55,10 +55,21 @@ module MobilityActiveStorage
 
       return ActiveStorage::Attached::Changes::DeleteMany.new(name, model) if attachables.none?
 
-      ActiveStorage::Attached::Changes::CreateMany.new(
-        name, model, attachables,
-        pending_uploads: model.attachment_changes[name].try(:pending_uploads)
-      )
+      if supports_pending_uploads?
+        ActiveStorage::Attached::Changes::CreateMany.new(
+          name, model, attachables,
+          pending_uploads: model.attachment_changes[name].try(:pending_uploads)
+        )
+      else
+        ActiveStorage::Attached::Changes::CreateMany.new(name, model, attachables)
+      end
+    end
+
+    def supports_pending_uploads?
+      @supports_pending_uploads ||= ActiveStorage::Attached::Changes::CreateMany
+        .instance_method(:initialize)
+        .parameters
+        .any? { |type, name| type == :key && name == :pending_uploads }
     end
   end
 end

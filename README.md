@@ -178,15 +178,12 @@ editing — and with fallbacks enabled, that changes what other locales serve to
 
 ## Rails compatibility
 
-Requires **Rails >= 7.2.3.2** and Ruby >= 3.2. Tested in CI against Rails 7.2, 8.0 and latest, on
-Ruby 3.2 through 4.0.
+Requires **Rails >= 7.0.8** and Ruby >= 3.2. Tested in CI against Rails 7.0.8, 7.2, 8.0 and
+latest, on Ruby 3.2 through 4.0.
 
-The floor is deliberately a patch level rather than a minor version. Rails 7.0 and 7.1 are
-end-of-life and carry Active Storage advisories with no fix available — path traversal and glob
-injection in `DiskService`, a content-type bypass in direct uploads, and DoS via `Range` requests in
-proxy mode. Since this gem's whole purpose is to serve more attachments through exactly those paths,
-it does not support them. 7.2.3.2 is the earliest release that clears every current Active Storage
-advisory; the equivalent for the 8.0 series is 8.0.5.1.
+The floor is a patch release because this gem depends directly on Active Storage's attachment
+behaviour, and the 7.0 line needs to stay at or above the patched 7.0.8 release. If you need an
+older 7.0.x build, this project does not support it.
 
 Run [bundler-audit](https://github.com/rubysec/bundler-audit) or Dependabot in your application to
 stay ahead of new advisories.
@@ -234,8 +231,8 @@ bin/setup
 bundle exec rake        # tests + rubocop
 
 # against a specific Rails version
-BUNDLE_GEMFILE=gemfiles/rails_7.2.gemfile bundle install
-BUNDLE_GEMFILE=gemfiles/rails_7.2.gemfile bundle exec rake test
+BUNDLE_GEMFILE=gemfiles/rails_7.0.8.gemfile bundle install
+BUNDLE_GEMFILE=gemfiles/rails_7.0.8.gemfile bundle exec rake test
 ```
 
 The suite boots a minimal `Rails::Application` in `test/test_helper.rb` against in-memory SQLite,

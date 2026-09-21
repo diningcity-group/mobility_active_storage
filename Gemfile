@@ -14,5 +14,5 @@ gem "rubocop", "~> 1.21"
 
 # Test harness: a minimal Rails application is booted in test/test_helper.rb so
 # Active Storage's engine (models, services, jobs) loads the way it does in a real app.
-gem "railties", ">= 7.0"
+gem "railties", ">= 7.0.8"
 gem "sqlite3", ">= 1.6"
